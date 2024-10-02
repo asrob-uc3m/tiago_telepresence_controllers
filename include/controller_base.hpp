@@ -27,6 +27,7 @@ protected:
     virtual std::vector<double> getDesiredJointValues(const ros::Duration& period) = 0;
     void updateStamp();
     const std::vector<double> & getJoints() const { return jointAngles; }
+    virtual void onStarting() {}
 
     std::string robot_desc_string;
     mutable std::mutex mutex;
@@ -39,6 +40,7 @@ private:
     ros::Publisher pub;
     std::string name;
     bool isStepping {false};
+    bool isActive {false};
     std::vector<hardware_interface::JointHandle> joints;
     std::vector<std::pair<double, double>> jointLimits;
     std::vector<double> jointAngles;

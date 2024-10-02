@@ -13,6 +13,7 @@
 #include <kdl/tree.hpp>
 
 constexpr auto UPDATE_LOG_THROTTLE = 1.0; // [s]
+constexpr auto TIMEOUT = 1.0; // [s]
 
 namespace
 {
@@ -45,10 +46,12 @@ public:
         delete ikSolverVel;
     }
 
-    void starting(const ros::Time &time) override
+    void onStarting() override
     {
         std::vector<double> jointAngles = getJoints();
-        fkSolverPos->JntToCart(vectorToKdl(jointAngles), H_initial);
+        fkSolverPos->JntToCart(vectorToKdl(jointAngles), H_0_N_initial);
+        ROS_INFO("Initial position: %f %f %f", H_0_N_initial.p.x(), H_0_N_initial.p.y(), H_0_N_initial.p.z());
+        H_0_N_prev = H_0_N_initial;
     }
 
 protected:
@@ -61,8 +64,8 @@ private:
     KDL::Chain chain;
     KDL::ChainFkSolverPos_recursive * fkSolverPos {nullptr};
     KDL::ChainIkSolverVel_pinv * ikSolverVel {nullptr};
-    KDL::Frame H_initial;
-    KDL::Frame H_prev;
+    KDL::Frame H_0_N_initial;
+    KDL::Frame H_0_N_prev;
 };
 
 } // namespace tiago_controllers
@@ -122,24 +125,26 @@ bool tiago_controllers::ArmController::additionalSetup(hardware_interface::Posit
 
 std::vector<double> tiago_controllers::ArmController::getDesiredJointValues(const ros::Duration& period)
 {
-    KDL::Frame H;
+    KDL::Frame H_N; // change in pose between initial and desired, referred to the TCP
 
     {
         std::lock_guard<std::mutex> lock(mutex);
-        H.p = KDL::Vector(value.position.x, value.position.y, value.position.z);
-        H.M = KDL::Rotation::Quaternion(value.orientation.x, value.orientation.y, value.orientation.z, value.orientation.w);
+        H_N.p = KDL::Vector(value.position.x, value.position.y, value.position.z);
+        H_N.M = KDL::Rotation::Quaternion(value.orientation.x, value.orientation.y, value.orientation.z, value.orientation.w);
     }
 
-    auto twist = KDL::diff(H_prev, H, period.toSec());
+    auto H_0_N_desired = H_0_N_initial * H_N;
+    auto twist = KDL::diff(H_0_N_prev, H_0_N_desired, period.toSec());
     auto q = vectorToKdl(getJoints());
 
     // refer to base frame, but leave the reference point intact
-    twist = H_initial.M.Inverse() * twist;
+    twist = H_0_N_initial.M.Inverse() * twist;
 
     KDL::JntArray qdot(getJointCount());
 
     if (!checkReturnCode(ikSolverVel->CartToJnt(q, twist, qdot)))
     {
+        ROS_WARN_THROTTLE(UPDATE_LOG_THROTTLE, "Could not calculate joint velocities (1)");
         return {};
     }
 
@@ -161,10 +166,11 @@ std::vector<double> tiago_controllers::ArmController::getDesiredJointValues(cons
 
     if (!checkReturnCode(ikSolverVel->CartToJnt(q, twist, qdot_temp)))
     {
+        ROS_WARN_THROTTLE(UPDATE_LOG_THROTTLE, "Could not calculate joint velocities (2)");
         return {};
     }
 
-    H_prev = H; // no singular point, so update the calculated pose
+    H_0_N_prev = H_0_N_desired; // no singular point, so update the calculated pose
 
     return kdlToVector(q);
 }

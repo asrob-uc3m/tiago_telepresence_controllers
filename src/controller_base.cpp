@@ -101,10 +101,20 @@ void ControllerBase::update(const ros::Time& time, const ros::Duration& period)
 
     pub.publish(msg);
 
+    bool wasActive = isActive;
+
     if (time - getLastStamp() > timeout)
     {
+        isActive = false;
         return;
     }
+
+    if (!wasActive)
+    {
+        onStarting();
+    }
+
+    isActive = true;
 
     const auto targets = getDesiredJointValues(period);
 
