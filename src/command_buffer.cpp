@@ -10,8 +10,8 @@ constexpr auto CAPACITY_MULTIPLIER = 50;
 void CommandBuffer::accept(const std::vector<double> & command, const ros::SteadyTime & timestamp)
 {
     ROS_INFO("%s: in accept() %d", name.c_str(), buffer.size());
-    buffer.emplace_back(command, timestamp);
-    ROS_INFO("%s: accepted %d", name.c_str(), buffer.size());
+    buffer.emplace_back(command, ros::SteadyTime(timestamp.toSec()));
+    ROS_INFO("%s: accepted %d %f", name.c_str(), buffer.size(), timestamp.toSec());
 
     if (buffer.size() > minSize * (CAPACITY_MULTIPLIER + 1))
     {
@@ -41,7 +41,7 @@ void CommandBuffer::accept(const std::vector<double> & command, const ros::Stead
             updateSlopes();
             offset = ros::SteadyTime::now() - left->second;
             enabled = true;
-            ROS_INFO("%s: enabled", name.c_str());
+            ROS_INFO("%s: enabled %f", name.c_str(), offset.toSec());
         }
     }
 
@@ -65,12 +65,12 @@ void CommandBuffer::updateSlopes()
 
 std::vector<double> CommandBuffer::interpolate()
 {
-    ROS_INFO("%s: in interpolate()", name.c_str());
+    ROS_INFO("%s: in interpolate() %f", name.c_str(), offset.toSec());
     const auto refTime = ros::SteadyTime::now() - offset;
 
     if (enabled && !buffer.empty() && left->second <= refTime)
     {
-        ROS_INFO("%s: in interpolate() and doing stuff", name.c_str());
+        ROS_INFO("%s: in interpolate() and doing stuff, %f", name.c_str(), refTime.toSec());
         bool needsUpdate = false;
 
         while (right->second < refTime && right != buffer.end())
@@ -91,7 +91,7 @@ std::vector<double> CommandBuffer::interpolate()
                 updateSlopes();
             }
 
-            ROS_INFO("%s: interpolating", name.c_str());
+            ROS_INFO("%s: interpolating %f %f", name.c_str(), left->second.toSec(), right->second.toSec());
             const auto T = (refTime - left->second).toSec();
             auto out = left->first;
 
@@ -144,7 +144,7 @@ void CommandBuffer::reset(const std::vector<double> & initialCommand)
     std::advance(left, -1);
     std::advance(right, -1);
 
-    ROS_INFO("%s: disabling", name.c_str());
+    ROS_INFO("%s: disabling %f", name.c_str(), left->second.toSec());
     enabled = false;
 }
 

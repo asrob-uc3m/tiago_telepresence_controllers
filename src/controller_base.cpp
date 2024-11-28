@@ -98,7 +98,7 @@ void ControllerBase::update(const ros::Time& time, const ros::Duration& period)
         current.push_back(position);
     }
 
-    pub.publish(msg);
+    //pub.publish(msg);
 
     if (time - getLastStamp() > timeout)
     {
