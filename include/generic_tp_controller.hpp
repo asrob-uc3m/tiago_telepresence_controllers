@@ -49,14 +49,17 @@ protected:
             return false;
         }
 
-        buffer = new CommandBuffer(bufferMinSize, GenericController<T>::numJoints());
+        buffer = new CommandBuffer(GenericController<T>::getName(), bufferMinSize, GenericController<T>::numJoints());
         return true;
     }
 
     void onStarting(const std::vector<double> & angles) override
     {
+        ROS_INFO("%s: onStarting()", GenericController<T>::getName().c_str());
         std::lock_guard<std::mutex> lock(bufferMutex);
+        ROS_INFO("%s: Resetting buffer", GenericController<T>::getName().c_str());
         buffer->reset(angles);
+        ROS_INFO("%s: Buffer reset", GenericController<T>::getName().c_str());
     }
 
     void accept(const std::vector<double> & command, const ros::Time & timestamp)

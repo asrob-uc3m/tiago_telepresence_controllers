@@ -57,13 +57,16 @@ public:
         fkSolverPos->JntToCart(q, H_0_N_initial);
         ROS_INFO("[%s] Initial position: %f %f %f", getName().c_str(), H_0_N_initial.p.x(), H_0_N_initial.p.y(), H_0_N_initial.p.z());
         H_0_N_prev = H_0_N_initial;
+        ROS_INFO("[%s]: Calling onStarting()", getName().c_str());
         BufferedGenericController::onStarting(angles);
         active = true;
+        ROS_INFO("[%s]: onStarting() called", getName().c_str());
     }
 
     void onDisabling() override
     {
         active = false;
+        ROS_INFO("[%s]: onDisabling() called", getName().c_str());
     }
 
 protected:
