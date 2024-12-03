@@ -29,7 +29,7 @@ arm_right_tp_controller:
   - arm_right_6_joint
   - arm_right_7_joint
   ik_solver_pos_eps: 0.01
-  ik_solver_pos_max_iter: 100
+  ik_solver_pos_max_iter: 1000
   ik_solver_vel_eps: 0.01
   ik_solver_vel_max_iter: 100
   start_link: "torso_lift_link"

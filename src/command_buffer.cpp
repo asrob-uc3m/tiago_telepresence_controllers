@@ -3,6 +3,7 @@
 #include <kdl/path_line.hpp>
 #include <kdl/rotational_interpolation_sa.hpp>
 #include <kdl/trajectory_segment.hpp>
+#include <kdl/trajectory_stationary.hpp>
 #include <kdl/velocityprofile_rect.hpp>
 
 // -----------------------------------------------------------------------------
@@ -45,10 +46,19 @@ void FrameCommandBuffer::update()
 {
     auto duration = (right->second - left->second).toSec();
     auto speed = (right->first.p - left->first.p).Norm() / duration;
-    auto * orient = new KDL::RotationalInterpolation_SingleAxis();
-    auto * path = new KDL::Path_Line(left->first, right->first, orient, 0.001);
-    auto * profile = new KDL::VelocityProfile_Rectangular(speed);
-    trajectory = std::make_unique<KDL::Trajectory_Segment>(path, profile, duration);
+
+    if (duration != 0.0 && speed != 0.0)
+    {
+        auto * orient = new KDL::RotationalInterpolation_SingleAxis();
+        auto * path = new KDL::Path_Line(left->first, right->first, orient, 0.001);
+        auto * profile = new KDL::VelocityProfile_Rectangular(speed);
+        ROS_INFO("Duration: %f, speed: %f", duration, twist.vel.Norm());
+        trajectory = std::make_unique<KDL::Trajectory_Segment>(path, profile, duration);
+    }
+    else
+    {
+        trajectory = std::make_unique<KDL::Trajectory_Stationary>(left->first);
+    }
 }
 
 // -----------------------------------------------------------------------------

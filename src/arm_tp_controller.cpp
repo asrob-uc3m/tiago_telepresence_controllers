@@ -163,15 +163,20 @@ void ArmController::processData(const geometry_msgs::PoseStamped& msg)
         );
 
         auto H_0_N = H_0_N_initial * H_N;
-        KDL::JntArray qd(q_slow.rows());
+        // KDL::JntArray qd(q_slow.rows());
 
-        if (ikSolverPos->CartToJnt(q_slow, H_0_N, qd) >= 0 && checkLimits(qd))
-        {
-            H_0_N_prev_fast = H_0_N;
-            q_slow = qd;
-        }
+        // if (ikSolverPos->CartToJnt(q_slow, H_0_N, qd) >= 0 && checkLimits(qd))
+        // {
+        //     H_0_N_prev_fast = H_0_N;
+        //     q_slow = qd;
+        // }
+        // else
+        // {
+        //     ROS_WARN_THROTTLE(UPDATE_LOG_THROTTLE, "[%s] Could not solve IK", getName().c_str());
+        // }
 
-        accept(H_0_N_prev_fast, msg.header.stamp);
+        // accept(H_0_N_prev_fast, msg.header.stamp);
+        accept(H_0_N, msg.header.stamp);
     }
 }
 
